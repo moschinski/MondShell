@@ -4,6 +4,7 @@ import static java.lang.String.format;
 import static net.devmond.shell.handler.ResultMaker.textResult;
 import static net.devmond.shell.util.IOUtils.readFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -19,8 +20,6 @@ import javax.xml.transform.stream.StreamSource;
 
 import net.devmond.shell.CommandInput;
 import net.devmond.shell.InvalidCommandException;
-import net.devmond.shell.Option;
-import net.devmond.shell.ValueStringOption;
 
 import org.eclipse.osgi.framework.console.CommandInterpreter;
 
@@ -33,11 +32,9 @@ public class FormatCommandHandler extends JavaScriptBasedCommandHandler
 	private static final String JSON_FORMAT_TYPE = "json";
 	private static final String XML_FORMAT_TYPE = "xml";
 
-	private static final Option FILE_FLAG = new ValueStringOption("file");
-
 	public FormatCommandHandler(CommandInterpreter cmdInterpreter) throws ScriptException, IOException
 	{
-		super(cmdInterpreter, FILE_FLAG);
+		super(cmdInterpreter);
 	}
 
 	@Override
@@ -46,11 +43,16 @@ public class FormatCommandHandler extends JavaScriptBasedCommandHandler
 		String formatType = input.nextArgument().toLowerCase();
 		Formatter formatter = getFormatterByType(formatType);
 
-		String unformattedStr = input.hasOption(FILE_FLAG) ? readFile(input
-				.getValueForOption(FILE_FLAG).toString())
-				: input.nextArgument();
+		String argument = input.nextArgument();
+
+		String unformattedStr = isPathToFile(argument) ? readFile(argument) : argument;
 
 		return textResult(formatter.format(unformattedStr));
+	}
+
+	private boolean isPathToFile(String argument)
+	{
+		return new File(argument).isFile();
 	}
 
 	private Formatter getFormatterByType(String formatType)

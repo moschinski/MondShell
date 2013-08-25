@@ -84,10 +84,4 @@ public class MondShellCommandProvider implements CommandProvider
 		new KillCommandHandler(ci).execute();
 	}
 
-	@Deprecated
-	public void _repeat(CommandInterpreter ci) throws Exception
-	{
-		// repeat
-	}
-
 }
