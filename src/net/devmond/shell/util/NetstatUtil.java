@@ -83,7 +83,7 @@ public class NetstatUtil {
 			}
 		}
 
-		return new Portuse(null, -1);
+		return null;
 	}
 
 	private String getNetstatResponse(int timeout, TimeUnit unit) {

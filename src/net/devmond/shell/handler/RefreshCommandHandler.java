@@ -2,11 +2,11 @@ package net.devmond.shell.handler;
 
 import static net.devmond.shell.handler.ResultMaker.textResult;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -17,17 +17,18 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.eclipse.osgi.framework.console.CommandInterpreter;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.ui.PlatformUI;
 
 /**
  * TODO add support for saving before performing a refresh
  */
 public class RefreshCommandHandler extends AbstractCommandHandler
 {
-	private static final Logger log = Logger
-			.getLogger(RefreshCommandHandler.class.getName());
-
+	private static final Logger log = Logger.getLogger(RefreshCommandHandler.class.getName());
 
 	private static final int MAX_CONCURRENT_REFRESHS = 5;
 	private final AtomicInteger refreshCnt;
@@ -43,7 +44,6 @@ public class RefreshCommandHandler extends AbstractCommandHandler
 	{
 
 		IProject[] projects;
-
 		if (cmdInput.hasNextArgument())
 		{
 			List<String> projectsToRefresh = new ArrayList<String>();
@@ -52,8 +52,12 @@ public class RefreshCommandHandler extends AbstractCommandHandler
 				projectsToRefresh.add(cmdInput.nextArgument());
 			}
 
-			projects = getProjectResourcesFromName(projectsToRefresh
-					.toArray(new String[projectsToRefresh.size()]));
+			projects = getProjectResourcesFromName(projectsToRefresh.toArray(new String[projectsToRefresh.size()]));
+			if (projects.length == 0)
+			{
+				return textResult(String.format("Found no project for the name(s) '%s' - cannot refresh",
+						projectsToRefresh));
+			}
 		} else
 		{
 			projects = ResourcesPlugin.getWorkspace().getRoot().getProjects();
@@ -86,36 +90,54 @@ public class RefreshCommandHandler extends AbstractCommandHandler
 
 		for (int i = 0; i < projectNames.length; i++)
 		{
-			projects[i] = ResourcesPlugin.getWorkspace().getRoot()
-					.getProject(projectNames[i]);
+			projects[i] = ResourcesPlugin.getWorkspace().getRoot().getProject(projectNames[i]);
 		}
 
 		return projects;
 	}
 
-	private void refreshProject(final AtomicInteger refreshCnt,
-			final Semaphore semaphore, final IProject project)
+	private void refreshProject(final AtomicInteger refreshCnt, final Semaphore semaphore, final IProject project)
 			throws CoreException
 	{
 
-		project.refreshLocal(IResource.DEPTH_INFINITE,
-				new NullProgressMonitor()
+		Display.getDefault().asyncExec(new Runnable()
+		{
+
+			@Override
+			public void run()
+			{
+				try
 				{
-					AtomicBoolean doneCalled = new AtomicBoolean(false);
-
-					@Override
-					public void done()
+					PlatformUI.getWorkbench().getProgressService().run(false, false, new IRunnableWithProgress()
 					{
-						if (doneCalled.compareAndSet(false, true))
-						{
-							// commandConsole.formatln(
-							// "Refresh of project '%s' finished",
-							// project.getName());
-							semaphore.release();
-							refreshCnt.incrementAndGet();
-						}
-					}
-				});
-	}
 
+						@Override
+						public void run(IProgressMonitor monitor) throws InvocationTargetException,
+								InterruptedException
+						{
+							try
+							{
+								project.refreshLocal(IResource.DEPTH_INFINITE, monitor);
+							} catch (CoreException e)
+							{
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+
+						}
+						// TODO Auto-generated method stub
+
+					});
+				} catch (InvocationTargetException e)
+				{
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (InterruptedException e)
+				{
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		});
+	}
 }

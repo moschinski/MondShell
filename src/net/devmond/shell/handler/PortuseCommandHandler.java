@@ -21,11 +21,12 @@ public class PortuseCommandHandler extends AbstractCommandHandler {
 	@Override
 	protected Result executeInternal(CommandInput cmdInput) throws Exception
 	{
+		// actually the port has be given --> exception?
 		int port = cmdInput.hasNextArgument() ? Integer.valueOf(cmdInput
 				.nextArgument()) : -1;
 
 		Portuse process = netstatUtil.findProcessForPort(port);
-		return textResult(process);
+		return textResult(process == null ? String.format("Port %s is not used", port) : process);
 	}
 
 

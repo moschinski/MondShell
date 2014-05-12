@@ -1,6 +1,6 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: MondShell
+Bundle-Name: net.devmond.mondshell.core
 Bundle-SymbolicName: net.devmond.MondShell;singleton:=true
 Bundle-Version: 0.1.0.0
 Bundle-Activator: net.devmond.shell.MondShellActivator
@@ -10,8 +10,11 @@ Require-Bundle: org.eclipse.ui,
  org.apache.commons.codec;bundle-version="1.3.0",
  org.eclipse.ui.externaltools;bundle-version="3.2.100",
  org.eclipse.core.filesystem;bundle-version="1.3.200",
- org.eclipse.core.resources;bundle-version="3.8.1"
-Bundle-RequiredExecutionEnvironment: JavaSE-1.6
-Import-Package: org.apache.commons.codec
+ org.eclipse.core.resources;bundle-version="3.8.1",
+ org.eclipse.equinox.http.registry;bundle-version="1.1.300"
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Import-Package: javax.servlet;version="2.6.0",
+ javax.servlet.http;version="2.6.0",
+ org.apache.commons.codec
 Export-Package: net.devmond.shell
 Bundle-ActivationPolicy: lazy
