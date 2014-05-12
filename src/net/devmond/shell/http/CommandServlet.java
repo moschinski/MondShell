@@ -76,9 +76,9 @@ public class CommandServlet extends HttpServlet
 		}
 	}
 
-	private Collection<String> getArguments(List<String> split)
+	private Collection<String> getArguments(List<String> parameters)
 	{
-		return split.size() > 1 ? split.subList(1, split.size()) : Collections.<String> emptySet();
+		return parameters.size() > 1 ? parameters.subList(1, parameters.size()) : Collections.<String> emptySet();
 	}
 
 	public Object invokeCommand(String command, CommandInterpreter commandInterpreter) throws Exception

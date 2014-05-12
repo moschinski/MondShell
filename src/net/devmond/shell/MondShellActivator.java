@@ -15,11 +15,15 @@
  */
 package net.devmond.shell;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Hashtable;
 
 import org.eclipse.core.runtime.Plugin;
 import org.eclipse.osgi.framework.console.CommandProvider;
+import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleException;
 
 /**
  * The activator class controls the plug-in life cycle
@@ -27,6 +31,9 @@ import org.osgi.framework.BundleContext;
 public class MondShellActivator extends Plugin
 {
 	public static final String PLUGIN_ID = "MondShell"; //$NON-NLS-1$
+
+	private static final Collection<String> ENFORCE_START_BUNDLES = Arrays.asList("org.eclipse.equinox.common",
+			"org.eclipse.equinox.http.jetty", "org.eclipse.equinox.http.registry");
 
 	@SuppressWarnings("unused")
 	private static MondShellActivator plugin;
@@ -38,7 +45,32 @@ public class MondShellActivator extends Plugin
 		MondShellCommandProvider mondShell = new MondShellCommandProvider();
 
 		context.registerService(CommandProvider.class, mondShell, properties);
+
+		// also register it for use in servlet
 		context.registerService(MondShellCommandProvider.class, mondShell, properties);
+
+		enforceStartOfRequiredBundles(context.getBundles());
+	}
+
+	private void enforceStartOfRequiredBundles(Bundle[] bundles)
+	{
+		// should we consider bundle version?
+		for (Bundle bundle : bundles)
+		{
+			if (ENFORCE_START_BUNDLES.contains(bundle.getSymbolicName()) && bundle.getState() != Bundle.ACTIVE)
+			{
+				System.out.println("Starting " + bundle.getSymbolicName() + " programatically");
+				try
+				{
+					bundle.start();
+				} catch (BundleException e)
+				{
+					e.printStackTrace();
+				}
+			}
+
+			// install the bundles that are missing?
+		}
 	}
 
 	@Override
