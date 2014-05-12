@@ -64,7 +64,6 @@ public class CommandServlet extends HttpServlet
 			resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 			return;
 		}
-
 		String command = paramters.get(0);
 		CommandInterpreter commandInterpreter = new ServletCommandInterpreter(resp, getArguments(paramters));
 		try
