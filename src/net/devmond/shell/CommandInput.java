@@ -15,6 +15,7 @@
  */
 package net.devmond.shell;
 
+import java.util.Collection;
 import java.util.NoSuchElementException;
 
 public interface CommandInput {
@@ -39,5 +40,10 @@ public interface CommandInput {
 	String nextArgument();
 
 	boolean hasOption(Option option);
+
+	/**
+	 * @return all given arguments as a collection
+	 */
+	Collection<String> getArguments();
 
 }

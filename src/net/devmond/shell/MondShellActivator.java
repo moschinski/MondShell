@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Hashtable;
 
 import org.eclipse.core.runtime.Plugin;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.osgi.framework.console.CommandProvider;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
@@ -30,17 +31,17 @@ import org.osgi.framework.BundleException;
  */
 public class MondShellActivator extends Plugin
 {
+	private static final String START_MONDSHELL_SERVLET = "net.devmond.shell.startMondshellServlet";
+
+	private final boolean startMondshellServlet = Boolean.getBoolean(START_MONDSHELL_SERVLET);
+
 	public static final String PLUGIN_ID = "MondShell"; //$NON-NLS-1$
 
-	private static final Collection<String> ENFORCE_START_BUNDLES = Arrays.asList("org.eclipse.equinox.common",
+	private static final Collection<String> REQUIRED_SERVLET_BUNDLES = Arrays.asList("org.eclipse.equinox.common",
 			"org.eclipse.equinox.http.jetty", "org.eclipse.equinox.http.registry");
-
-	@SuppressWarnings("unused")
-	private static MondShellActivator plugin;
 
 	@Override
 	public void start(BundleContext context) throws Exception {
-		plugin = this;
 		Hashtable<String, ?> properties = new Hashtable<String, String>();
 		MondShellCommandProvider mondShell = new MondShellCommandProvider();
 
@@ -49,34 +50,46 @@ public class MondShellActivator extends Plugin
 		// also register it for use in servlet
 		context.registerService(MondShellCommandProvider.class, mondShell, properties);
 
-		enforceStartOfRequiredBundles(context.getBundles());
+		startMondshellServletIfRequired(context);
 	}
 
-	private void enforceStartOfRequiredBundles(Bundle[] bundles)
+	private void startMondshellServletIfRequired(BundleContext context)
+	{
+		if (!startMondshellServlet)
+		{
+			return;
+		}
+		getLog().log(
+				new Status(Status.INFO, PLUGIN_ID, String.format(
+						"'%s' is set to 'true - loading required servlet bundles", START_MONDSHELL_SERVLET)));
+		try
+		{
+			enforceStartOfRequiredServletBundles(context.getBundles());
+		} catch (BundleException e)
+		{
+			getLog().log(
+					new Status(
+							Status.WARNING,
+							PLUGIN_ID,
+							"Exception while loading required Servlet bundles, MondShell servlet may be not accessible",
+							e));
+		}
+	}
+
+	private void enforceStartOfRequiredServletBundles(Bundle[] bundles) throws BundleException
 	{
 		// should we consider bundle version?
 		for (Bundle bundle : bundles)
 		{
-			if (ENFORCE_START_BUNDLES.contains(bundle.getSymbolicName()) && bundle.getState() != Bundle.ACTIVE)
+			if (REQUIRED_SERVLET_BUNDLES.contains(bundle.getSymbolicName()) && bundle.getState() != Bundle.ACTIVE)
 			{
-				System.out.println("Starting " + bundle.getSymbolicName() + " programatically");
-				try
-				{
-					bundle.start();
-				} catch (BundleException e)
-				{
-					e.printStackTrace();
-				}
+				getLog().log(
+						new Status(Status.INFO, PLUGIN_ID,
+								String.format("Bundle '%s' is not active yet, starting it programmatically",
+										bundle.getSymbolicName())));
+				bundle.start();
 			}
-
-			// install the bundles that are missing?
 		}
 	}
-
-	@Override
-	public void stop(BundleContext context) throws Exception {
-		plugin = null;
-		super.stop(context);
-	}	
 
 }

@@ -11,7 +11,7 @@
       <servlet
             alias="/mondshell"
             class="net.devmond.shell.http.CommandServlet"
-            load-on-startup="true">
+            load-on-startup="false">
       </servlet>
    </extension>
 

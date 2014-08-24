@@ -1,13 +1,10 @@
 package net.devmond.shell.handler;
 
-import static net.devmond.shell.handler.ResultMaker.textResult;
+import static net.devmond.shell.handler.TextResult.textResult;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -15,13 +12,14 @@ import net.devmond.shell.CommandInput;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IWorkspaceRunnable;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.jface.operation.IRunnableWithProgress;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.osgi.framework.console.CommandInterpreter;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.ui.PlatformUI;
 
 /**
  * TODO add support for saving before performing a refresh
@@ -30,114 +28,93 @@ public class RefreshCommandHandler extends AbstractCommandHandler
 {
 	private static final Logger log = Logger.getLogger(RefreshCommandHandler.class.getName());
 
-	private static final int MAX_CONCURRENT_REFRESHS = 5;
-	private final AtomicInteger refreshCnt;
-
 	public RefreshCommandHandler(CommandInterpreter cmdInterpreter)
 	{
 		super(cmdInterpreter);
-		refreshCnt = new AtomicInteger(0);
 	}
 
 	@Override
 	protected Result executeInternal(CommandInput cmdInput) throws Exception
 	{
-
-		IProject[] projects;
-		if (cmdInput.hasNextArgument())
+		Collection<String> projectsToRefresh = cmdInput.getArguments();
+		if (projectsToRefresh.isEmpty())
 		{
-			List<String> projectsToRefresh = new ArrayList<String>();
-			while (cmdInput.hasNextArgument())
-			{
-				projectsToRefresh.add(cmdInput.nextArgument());
-			}
-
-			projects = getProjectResourcesFromName(projectsToRefresh.toArray(new String[projectsToRefresh.size()]));
-			if (projects.length == 0)
-			{
-				return textResult(String.format("Found no project for the name(s) '%s' - cannot refresh",
-						projectsToRefresh));
-			}
-		} else
-		{
-			projects = ResourcesPlugin.getWorkspace().getRoot().getProjects();
+			return refreshWorkspace();
 		}
+		return refreshProjectsByName(projectsToRefresh);
+	}
 
-		// not sure if this is still required in current Eclipse releases
-		final Semaphore semaphore = new Semaphore(MAX_CONCURRENT_REFRESHS);
+	private Result refreshWorkspace() throws InterruptedException
+	{
+		// refresh whole workspace
+		refreshResource(ResourcesPlugin.getWorkspace().getRoot(), "Refreshing workspace");
+		return textResult("Triggered refresh of workspace");
+	}
+
+	private Result refreshProjectsByName(Collection<String> projectsToRefresh) throws InterruptedException,
+			CoreException
+	{
+		Collection<IProject> projects = getProjectsByNames(projectsToRefresh);
+		if (projects.isEmpty())
+		{
+			return textResult("Found no projects to refresh");
+		}
+		return refreshProjects(projects);
+	}
+
+	private Collection<IProject> getProjectsByNames(Iterable<String> projectsToRefresh)
+	{
+		Set<IProject> projects = new HashSet<>();
+		for (String projectName : projectsToRefresh)
+		{
+			projects.add(ResourcesPlugin.getWorkspace().getRoot().getProject(projectName));
+		}
+		return projects;
+	}
+
+	private Result refreshProjects(Iterable<IProject> projects) throws InterruptedException, CoreException
+	{
+		int i = 0;
 		for (final IProject project : projects)
 		{
 			if (project.isOpen())
 			{
-				semaphore.tryAcquire(1, TimeUnit.MINUTES);
-				if (log.isLoggable(Level.FINE))
-				{
-					log.fine("Start refresh of project " + project.getName());
-				}
-
-				refreshProject(refreshCnt, semaphore, project);
+				i++;
+				String jobName = "Refreshing project " + project.getName();
+				refreshResource(project, jobName);
 			}
 		}
-
-		// make sure that all refreshes completed
-		semaphore.tryAcquire(MAX_CONCURRENT_REFRESHS, 1, TimeUnit.SECONDS);
-		return textResult(String.format("Successfully refreshed %d projects", refreshCnt.get()));
+		return textResult(String.format("Scheduled the refresh of %d projects", i));
 	}
 
-	private IProject[] getProjectResourcesFromName(String[] projectNames)
+	private void refreshResource(final IResource resource, String jobName) throws InterruptedException
 	{
-		IProject[] projects = new IProject[projectNames.length];
-
-		for (int i = 0; i < projectNames.length; i++)
+		Job job = new Job(jobName)
 		{
-			projects[i] = ResourcesPlugin.getWorkspace().getRoot().getProject(projectNames[i]);
-		}
-
-		return projects;
-	}
-
-	private void refreshProject(final AtomicInteger refreshCnt, final Semaphore semaphore, final IProject project)
-			throws CoreException
-	{
-
-		Display.getDefault().asyncExec(new Runnable()
-		{
-
 			@Override
-			public void run()
+			protected IStatus run(IProgressMonitor monitor)
 			{
 				try
 				{
-					PlatformUI.getWorkbench().getProgressService().run(false, false, new IRunnableWithProgress()
+					ResourcesPlugin.getWorkspace().run(new IWorkspaceRunnable()
 					{
-
 						@Override
-						public void run(IProgressMonitor monitor) throws InvocationTargetException,
-								InterruptedException
+						public void run(IProgressMonitor monitor) throws CoreException
 						{
-							try
-							{
-								project.refreshLocal(IResource.DEPTH_INFINITE, monitor);
-							} catch (CoreException e)
-							{
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-
+							resource.refreshLocal(IResource.DEPTH_INFINITE, monitor);
 						}
-						// TODO Auto-generated method stub
-
-					});
-				} catch (InvocationTargetException e)
+					}, monitor);
+					return Status.OK_STATUS;
+				} catch (CoreException e)
 				{
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (InterruptedException e)
-				{
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					String errorMsg = String.format("An exception happened while refreshing '%s'", resource.getName());
+					log.log(Level.WARNING, errorMsg, e);
+					return new Status(IStatus.ERROR, "MondShell", errorMsg);
 				}
 			}
-		});
+		};
+		job.setUser(true);
+		job.setPriority(Job.LONG);
+		job.schedule();
 	}
 }

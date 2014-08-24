@@ -1,5 +1,7 @@
 package net.devmond.shell;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -7,10 +9,12 @@ public class CommandInputImpl implements CommandInput
 {
 	private final Options options;
 	private final Iterator<String> iterator;
+	private final List<String> arguments;
 
 	public CommandInputImpl(Options options, List<String> arguments)
 	{
 		this.options = options;
+		this.arguments = arguments;
 		this.iterator = arguments.iterator();
 	}
 
@@ -38,4 +42,9 @@ public class CommandInputImpl implements CommandInput
 		return options.getValueForOption(option);
 	}
 
+	@Override
+	public Collection<String> getArguments()
+	{
+		return Collections.unmodifiableCollection(arguments);
+	}
 }

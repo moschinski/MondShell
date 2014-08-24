@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Stefan Moschinski
+ * Copyright (C) 2014 Stefan Moschinski
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,24 +17,30 @@ package net.devmond.shell.http;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.Dictionary;
 import java.util.Iterator;
 
 import javax.servlet.http.HttpServletResponse;
 
+import net.devmond.shell.MondShellCommandProvider;
+
 import org.eclipse.osgi.framework.console.CommandInterpreter;
 import org.osgi.framework.Bundle;
 
-public class ServletCommandInterpreter implements CommandInterpreter
+public class MondShellServletCommandInterpreter implements CommandInterpreter
 {
 
-	private final HttpServletResponse resp;
 	private final PrintWriter writer;
 	private final Iterator<String> argIterator;
+	private final MondShellCommandProvider service;
 
-	ServletCommandInterpreter(HttpServletResponse resp, Iterable<String> arguments) throws IOException
+	MondShellServletCommandInterpreter(HttpServletResponse resp, Collection<String> arguments, MondShellCommandProvider service)
+			throws IOException
 	{
-		this.resp = resp;
+		this.service = service;
 		this.writer = resp.getWriter();
 		this.argIterator = arguments.iterator();
 	}
@@ -50,8 +56,37 @@ public class ServletCommandInterpreter implements CommandInterpreter
 	@Override
 	public Object execute(String cmd)
 	{
-		// TODO Auto-generated method stub
-		return null;
+		try
+		{
+			return invokeCommand(cmd);
+		} catch (Exception e)
+		{
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected Object invokeCommand(String command) throws Exception
+	{
+		try
+		{
+			Method cmd = findCommand("_" + command);
+			return cmd.invoke(service, this);
+		} catch (InvocationTargetException e)
+		{
+			if (e.getTargetException() instanceof Exception)
+				throw (Exception) e.getTargetException();
+			throw (Error) e.getTargetException();
+		}
+	}
+
+	private Method findCommand(Object commandName)
+	{
+		for (Method command : MondShellCommandProvider.class.getMethods())
+		{
+			if (command.getName().equalsIgnoreCase(commandName.toString()))
+				return command;
+		}
+		throw new IllegalArgumentException("Cannot find the command method for: " + commandName);
 	}
 
 	@Override
@@ -81,15 +116,13 @@ public class ServletCommandInterpreter implements CommandInterpreter
 	@Override
 	public void printDictionary(Dictionary<?, ?> dic, String title)
 	{
-		// TODO Auto-generated method stub
-
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public void printBundleResource(Bundle bundle, String resource)
 	{
-		// TODO Auto-generated method stub
-
+		throw new UnsupportedOperationException();
 	}
 
 }

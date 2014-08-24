@@ -15,13 +15,14 @@
  */
 package net.devmond.shell.http;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -42,37 +43,34 @@ public class CommandServlet extends HttpServlet
 	private final MondShellCommandProvider service;
 
 	@SuppressWarnings(
-	/* because of problems with Java 7 */{ "unchecked", "rawtypes" })
+	{ "unchecked", "rawtypes" })
 	public CommandServlet()
 	{
 		BundleContext bundleContext = FrameworkUtil.getBundle(this.getClass()).getBundleContext();
 		ServiceReference serviceReference = bundleContext.getServiceReference(MondShellCommandProvider.class);
-		service = (MondShellCommandProvider) bundleContext.getService(serviceReference);
+		service = (MondShellCommandProvider) requireNonNull(bundleContext.getService(serviceReference));
 	}
 
-	/*
-	 * Not a best practice, but to simplify the integration we offer also a get
-	 * method
-	 */
 	@Override
-	protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException
 	{
-		String parameter = req.getParameter("cmd");
-		List<String> paramters = Arrays.asList(parameter.split("\\s+"));
-		if (paramters.isEmpty())
+		String parameter = Objects.toString(req.getParameter("cmd"), "");
+		List<String> parameters = Arrays.asList(parameter.split("\\s+"));
+		if (parameters.isEmpty())
 		{
 			resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 			return;
 		}
-		String command = paramters.get(0);
-		CommandInterpreter commandInterpreter = new ServletCommandInterpreter(resp, getArguments(paramters));
+		String command = parameters.get(0);
+		CommandInterpreter commandInterpreter = new MondShellServletCommandInterpreter(resp, getArguments(parameters), service);
 		try
 		{
-			invokeCommand(command, commandInterpreter);
+			commandInterpreter.execute(command);
 			resp.setStatus(HttpServletResponse.SC_OK);
 		} catch (Exception e)
 		{
 			resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+			e.printStackTrace(resp.getWriter());
 		}
 	}
 
@@ -81,27 +79,4 @@ public class CommandServlet extends HttpServlet
 		return parameters.size() > 1 ? parameters.subList(1, parameters.size()) : Collections.<String> emptySet();
 	}
 
-	public Object invokeCommand(String command, CommandInterpreter commandInterpreter) throws Exception
-	{
-		try
-		{
-			Method cmd = findCommand("_" + command);
-			return cmd.invoke(service, commandInterpreter);
-		} catch (InvocationTargetException e)
-		{
-			if (e.getTargetException() instanceof Exception)
-				throw (Exception) e.getTargetException();
-			throw (Error) e.getTargetException();
-		}
-	}
-
-	private Method findCommand(Object commandName)
-	{
-		for (Method command : MondShellCommandProvider.class.getMethods())
-		{
-			if (command.getName().equalsIgnoreCase(commandName.toString()))
-				return command;
-		}
-		throw new IllegalArgumentException("Cannot find the command method for: " + commandName);
-	}
 }
