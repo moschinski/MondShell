@@ -8,8 +8,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import net.devmond.shell.CommandInput;
-import net.devmond.shell.StringOption;
 import net.devmond.shell.Option;
+import net.devmond.shell.StringOption;
 import net.devmond.shell.ValueStringOption;
 import net.devmond.shell.util.HelpTextBuilder;
 
@@ -111,10 +111,23 @@ public class RegexCommandHandler extends AbstractCommandHandler
 	@Override
 	public CharSequence getHelpText()
 	{
-		return new HelpTextBuilder("match", "input regex")
-				.addParameter(MATCH_PART_OPTIONS, "The regex need only to match a part of the given input")
-				.addParameter(SHOW_GROUPS_OPTIONS, "The groups that are matched are shown")
-				.addParameter(REGEX_FLAGS_OPTIONS, "Using this option you can define regex flags").toString();
+		return new HelpTextBuilder("match", "tests whether an input matches a regex")
+				.addOption(MATCH_PART_OPTIONS, "The regex need only to match a part of the given input")
+				.addOption(SHOW_GROUPS_OPTIONS, "The groups that are matched are shown")
+				.addOption(REGEX_FLAGS_OPTIONS,
+						"Using this option you can define regex flags, e.g., flags insensitive,canon")
+				.addArgument("input", "the string that should be matched")
+				.addArgument("regex", "the regex that should be used for string matching").toString();
 	}
 
+	public static void main(String[] args)
+	{
+		System.out.println(new HelpTextBuilder("match", "tests whether an input matches a regex")
+				.addOption(MATCH_PART_OPTIONS, "The regex need only to match a part of the given input")
+				.addOption(SHOW_GROUPS_OPTIONS, "The groups that are matched are shown")
+				.addOption(REGEX_FLAGS_OPTIONS,
+						"Using this option you can define regex flags, e.g., flags insensitive,canon")
+				.addArgument("input", "the string that should be matched")
+				.addArgument("regex", "the regex that should be used for string matching").toString());
+	}
 }

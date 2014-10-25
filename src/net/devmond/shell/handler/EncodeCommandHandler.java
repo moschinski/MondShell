@@ -11,6 +11,7 @@ import net.devmond.shell.CommandInput;
 import net.devmond.shell.InvalidCommandException;
 import net.devmond.shell.Option;
 import net.devmond.shell.ValueStringOption;
+import net.devmond.shell.util.HelpTextBuilder;
 
 import org.eclipse.osgi.framework.console.CommandInterpreter;
 
@@ -52,8 +53,12 @@ public class EncodeCommandHandler extends AbstractCommandHandler
 	@Override
 	public CharSequence getHelpText()
 	{
-		// TODO Auto-generated method stub
-		return super.getHelpText();
+		return new HelpTextBuilder("encode", "encodes a given sting")
+				.addOption(CHARSET_FLAG, "Defines the charset to use for encoding, default is UTF-8")
+				.addArgument("encodingType",
+						"defines which encoding should be performed, available are 'html', 'base64' and 'url'")
+				.addArgument("stringToEncode", "the sting that should be encoded")
+				.toString();
 	}
 
 	private Charset getConfiguredCharset(Object configuredCharset)

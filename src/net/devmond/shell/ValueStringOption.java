@@ -20,5 +20,11 @@ public class ValueStringOption extends StringOption
 	{
 		return true;
 	}
+
+	@Override
+	public String toString()
+	{
+		return super.toString() + " <value(s)>";
+	}
 	
 }

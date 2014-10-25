@@ -1,92 +1,128 @@
 package net.devmond.shell.util;
 
+import static java.util.Objects.requireNonNull;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+
 import net.devmond.shell.Option;
 
-public class HelpTextBuilder implements CharSequence
+public class HelpTextBuilder
 {
+
+	private static class CmdValueDesc
+	{
+		String name;
+		String desc;
+
+		CmdValueDesc(String name, String desc)
+		{
+			this.name = requireNonNull(name);
+			this.desc = requireNonNull(desc);
+		}
+	}
 
 	/** Strings used to format other strings */
 	private final static String tab = "\t"; //$NON-NLS-1$
 	private final static String newline = "\r\n"; //$NON-NLS-1$
-	private final StringBuilder help;
+	private final String command;
+	private final String description;
 
-	public HelpTextBuilder(String command, String arguments)
+	private final Collection<CmdValueDesc> options = new ArrayList<>(1);
+	private final Collection<CmdValueDesc> arguments = new ArrayList<>(1);
+
+	public HelpTextBuilder(String command, String description)
 	{
-		this.help = new StringBuilder();
-		help.append("Usage: ").append(command).append(" [-options] ").append(arguments);
+		this.command = command;
+		this.description = description;
 	}
 
-	public HelpTextBuilder addHeader(String header)
+	public HelpTextBuilder addArgument(String command, String description)
 	{
-		help.append("---"); //$NON-NLS-1$
-		help.append(header);
-		help.append("---"); //$NON-NLS-1$
-		help.append(newline);
+		arguments.add(new CmdValueDesc(command, description));
 		return this;
 	}
 
-	/**
-	 * Private helper method for getHelp. Formats the command descriptions.
-	 * 
-	 * @return
-	 */
-	public HelpTextBuilder addCommand(String command, String description)
+	public HelpTextBuilder addOption(Option option, String optionDesc)
 	{
-		help.append(tab);
-		help.append(command);
-		help.append(" - "); //$NON-NLS-1$
-		help.append(description);
-		help.append(newline);
-		return this;
-	}
-
-	/**
-	 * Private helper method for getHelp. Formats the command descriptions with
-	 * command arguments.
-	 * 
-	 * @return
-	 */
-	public HelpTextBuilder addCommand(String command, String parameters,
-			String description)
-	{
-		help.append(tab);
-		help.append(command);
-		help.append(" "); //$NON-NLS-1$
-		help.append(parameters);
-		help.append(" - "); //$NON-NLS-1$
-		help.append(description);
-		help.append(newline);
-		return this;
-	}
-
-	public HelpTextBuilder addParameter(Option parameter, String description)
-	{
-		help.append(tab);
-		help.append(parameter);
-		help.append(" - "); //$NON-NLS-1$
-		help.append(description);
-		help.append(newline);
+		options.add(new CmdValueDesc(option.toString(), optionDesc));
 		return this;
 	}
 
 	@Override
-	public int length()
+	public String toString()
 	{
-		// TODO Auto-generated method stub
-		return 0;
+		StringBuilder helpText = new StringBuilder();
+		helpText.append(command).append(": \"").append(description).append("\"").append(newline).append("* USAGE: ")
+				.append(command).append(getOptionsList())
+				.append(getArguments().append(getDetailedOptionDesc()).append(getDetailedArgumentDesc()));
+		return helpText.toString();
 	}
 
-	@Override
-	public char charAt(int index)
+	private StringBuilder getOptionsList()
 	{
-		// TODO Auto-generated method stub
-		return 0;
+		return getListing(options, true);
 	}
 
-	@Override
-	public CharSequence subSequence(int start, int end)
+	private StringBuilder getArguments()
 	{
-		// TODO Auto-generated method stub
-		return null;
+		return getListing(arguments, false);
 	}
+
+	private StringBuilder getListing(Collection<CmdValueDesc> options, boolean addBrackets)
+	{
+		StringBuilder optionsBuilder = new StringBuilder();
+		if (options.isEmpty())
+		{
+			return optionsBuilder;
+		}
+		Iterator<CmdValueDesc> iterator = options.iterator();
+		optionsBuilder.append(" ");
+		while (iterator.hasNext())
+		{
+			optionsBuilder.append(addBrackets ? "[" : "").append(iterator.next().name).append(addBrackets ? "]" : "");
+			if (iterator.hasNext())
+				optionsBuilder.append(" ");
+		}
+		return optionsBuilder;
+	}
+
+	private StringBuilder getDetailedOptionDesc()
+	{
+		return getDetailedList("OPTIONS", options);
+	}
+
+	private StringBuilder getDetailedArgumentDesc()
+	{
+		return getDetailedList("ARGUMENTS (mandatory)", arguments);
+	}
+
+	private StringBuilder getDetailedList(String headline, Collection<CmdValueDesc> describables)
+	{
+		StringBuilder detail = new StringBuilder();
+		if (describables.isEmpty())
+		{
+			return detail;
+		}
+		detail.append(newline);
+		detail.append("* ").append(headline).append(":");
+		detail.append(newline);
+
+		Iterator<CmdValueDesc> iterator = describables.iterator();
+		while (iterator.hasNext())
+		{
+			CmdValueDesc option = iterator.next();
+			detail.append(tab);
+			detail.append(option.name);
+			detail.append(" - "); //$NON-NLS-1$
+			detail.append("\""); //$NON-NLS-1$
+			detail.append(option.desc);
+			detail.append("\""); //$NON-NLS-1$
+			if (iterator.hasNext())
+				detail.append(newline);
+		}
+		return detail;
+	}
+
 }
