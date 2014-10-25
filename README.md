@@ -4,7 +4,7 @@ Rationale
 -
 The MondShell is a plugin for Eclipse. The developement started as part of the 3rd Eclipse Hackathon in Dresden (April 20th, 2013). The plugin enhances the OSGi host console of Eclpse with additional commands. Unlike other shell plugins for Eclipse (such as <a href="https://code.google.com/p/elt/">Terminal plug-in for Eclipse</a>), it does not bring OS shell capabilities to Eclipse. Rather, it brings about commands that should make developer's work more convenient.
 ### Update Site
-You can find the current build (0.1.0.0) under: <a href="http://update.mondshell.fastmail.fm">http://update.mondshell.fastmail.fm</a>
+You can find the current build (0.5.0.20141025) under: <a href="http://update.mondshell.fastmail.fm">http://update.mondshell.fastmail.fm</a>
 Commands
 -
 <ul>
