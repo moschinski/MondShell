@@ -1,10 +1,10 @@
 package net.devmond.shell.handler;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static net.devmond.shell.handler.ResultMaker.textResult;
 
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import net.devmond.shell.CommandInput;
@@ -13,12 +13,12 @@ import net.devmond.shell.util.ProcessExecutor;
 
 import org.eclipse.osgi.framework.console.CommandInterpreter;
 
-public class KillCommandHandler extends AbstractCommandHandler
+public class WinKillCommandHandler extends AbstractCommandHandler
 {
 	private static final String[] WIN_KILL = new String[]
 	{ "taskkill", "/F", "/PID" };
 
-	public KillCommandHandler(CommandInterpreter cmdInterpreter)
+	public WinKillCommandHandler(CommandInterpreter cmdInterpreter)
 	{
 		super(cmdInterpreter);
 	}
@@ -34,7 +34,7 @@ public class KillCommandHandler extends AbstractCommandHandler
 	{
 		String[] cmdarray = getKillCommand(pid);
 		ProcessExecutor processExecutor = new ProcessExecutor(Runtime.getRuntime(), cmdarray);
-		return processExecutor.getInputAsString(1, TimeUnit.SECONDS);
+		return processExecutor.getInputAsString(1, SECONDS);
 	}
 
 	private static String[] getKillCommand(String pid)

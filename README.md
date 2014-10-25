@@ -22,6 +22,22 @@ Commands
 ### Custom Output
 By default the output of the commands (if any) is written to the OSGi console. However, using <i>\> pathToFile</i> at the end of your command, you can define a file to which the output should be written. For instance, <i>random uuid \> C:\random.txt</i> writes the generated random UUID to the file <i>C:\random.txt</i>.
 ### Remote Access
-Because the MondShell plugin is an extension of the OSGi host console it can be accessed via telnet if Eclipse is started with the system property -Dosgi.console=<i>\<PORT_NUMBER\></i>. 
+#### Telnet
+Because the MondShell plugin is an extension of the OSGi host console it can be accessed via telnet if Eclipse is started with the system property `-Dosgi.console=<PORT_NUMBER>`.
+#### HTTP (beta)
+It is also possible to acccess MondShell via HTTP. This way, you can execute your commands via **POST** requests to  _http://localhost:\<PORT\>/mondshell?cmd=\<YOUR_COMMAND\>_. For example, a refresh can be triggered by a POST request to http://localhost:8080/mondshell?cmd=refresh
+##### Configuration
+Setting the system property _net.devmond.shell.startMondshellServlet_  to `true` you can access MondShell via HTTP. Moreover, you need to configure the port of the HTTP service via the system property _org.osgi.service.http.port_. 
+That is, given following configuration in your eclipse.ini file:
+```
+-Dorg.osgi.service.http.port=8080
+-Dnet.devmond.shell.startMondshellServlet=true
+```
+the MondShell HTTP service is available on your local machine on port 8080.
+### Todo
+* better support for *nix systems
+* add help texts
+* your proposals :)
+
 ### License
 The MondShell plugin is licensed under the Apache Software License 2.0.

@@ -6,7 +6,7 @@ import net.devmond.shell.handler.DecodeCommandHandler;
 import net.devmond.shell.handler.EncodeCommandHandler;
 import net.devmond.shell.handler.FormatCommandHandler;
 import net.devmond.shell.handler.FreeportCommandHandler;
-import net.devmond.shell.handler.KillCommandHandler;
+import net.devmond.shell.handler.WinKillCommandHandler;
 import net.devmond.shell.handler.PortuseCommandHandler;
 import net.devmond.shell.handler.RandomCommandHandler;
 import net.devmond.shell.handler.RefreshCommandHandler;
@@ -81,7 +81,7 @@ public class MondShellCommandProvider implements CommandProvider
 
 	public void _kill(CommandInterpreter ci) throws Exception
 	{
-		new KillCommandHandler(ci).execute();
+		new WinKillCommandHandler(ci).execute();
 	}
 
 }

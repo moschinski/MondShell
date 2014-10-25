@@ -25,7 +25,7 @@ public class FreeportCommandHandler extends AbstractCommandHandler
 		Portuse process = netstatUtil.findProcessForPort(port);
 		if (process.getProcessPid() > 0)
 		{
-			return textResult(KillCommandHandler.killProcess(String.valueOf(process.getProcessPid())));
+			return textResult(WinKillCommandHandler.killProcess(String.valueOf(process.getProcessPid())));
 		}
 		return textResult("No process found for port: " + port);
 	}

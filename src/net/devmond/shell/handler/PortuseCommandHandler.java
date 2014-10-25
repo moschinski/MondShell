@@ -29,6 +29,5 @@ public class PortuseCommandHandler extends AbstractCommandHandler {
 		return textResult(process == null ? String.format("Port %s is not used", port) : process);
 	}
 
-
 }
 

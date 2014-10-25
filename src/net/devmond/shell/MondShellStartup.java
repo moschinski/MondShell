@@ -10,7 +10,6 @@ public class MondShellStartup implements IStartup {
 
 	@Override
 	public void earlyStartup() {
-		// only call this class to make sure that the MondShell is loaded
 	}
 
 }
