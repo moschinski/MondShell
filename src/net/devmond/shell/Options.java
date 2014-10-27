@@ -9,7 +9,7 @@ class Options
 {
 	private static final String NO_OPTION_VALUE = null;
 
-	private final Map<Option, Object> setOptions;
+	private final Map<Option, Object> optionValues;
 	private final List<Option> supportedOptions;
 
 	static Options from(Option... options)
@@ -25,7 +25,7 @@ class Options
 	private Options(Option[] supportedOptions)
 	{
 		this.supportedOptions = Arrays.asList(supportedOptions);
-		this.setOptions = new HashMap<Option, Object>(supportedOptions.length);
+		this.optionValues = new HashMap<Option, Object>(supportedOptions.length);
 	}
 
 	Option getSupportedOption(String optionString)
@@ -61,22 +61,36 @@ class Options
 		if (value.toString().startsWith("-")) // prevents incidental misuse
 			throw new InvalidCommandException("The value of an option is not allowed to start with '-'");
 
-		setOptions.put(option, value);
+		optionValues.put(option, value);
 	}
 
 	Object getValueForOption(Option option)
 	{
-		return setOptions.get(option);
+		return optionValues.get(option);
 	}
 
 	boolean isOptionSet(Option option)
 	{
-		return setOptions.containsKey(option);
+		return optionValues.containsKey(option);
+	}
+
+	/**
+	 * @param option
+	 *            the option for which the value is wanted
+	 * @param defaultValue
+	 *            the value that is returned if no value for the option is given
+	 * @return the value for the {@code option} or the {@code defaultValue} if
+	 *         no option value is given
+	 */
+	Object getValueForOption(Option option, Object defaultValue)
+	{
+		Object optionVal = optionValues.get(option);
+		return optionVal == null ? defaultValue : optionVal;
 	}
 
 	void setInputHasOption(Option option)
 	{
-		setOptions.put(option, NO_OPTION_VALUE);
+		optionValues.put(option, NO_OPTION_VALUE);
 	}
 
 }

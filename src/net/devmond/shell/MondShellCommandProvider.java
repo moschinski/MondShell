@@ -2,16 +2,17 @@ package net.devmond.shell;
 
 import static net.devmond.shell.handler.StringCommandHandler.Mode.UPPER_CASE;
 import net.devmond.shell.handler.CalculateCommandHandler;
+import net.devmond.shell.handler.DateCommandHandler;
 import net.devmond.shell.handler.DecodeCommandHandler;
 import net.devmond.shell.handler.EncodeCommandHandler;
 import net.devmond.shell.handler.FormatCommandHandler;
 import net.devmond.shell.handler.FreeportCommandHandler;
-import net.devmond.shell.handler.WinKillCommandHandler;
 import net.devmond.shell.handler.PortuseCommandHandler;
 import net.devmond.shell.handler.RandomCommandHandler;
 import net.devmond.shell.handler.RefreshCommandHandler;
 import net.devmond.shell.handler.RegexCommandHandler;
 import net.devmond.shell.handler.StringCommandHandler;
+import net.devmond.shell.handler.WinKillCommandHandler;
 import net.devmond.shell.util.NetstatUtil;
 
 import org.eclipse.osgi.framework.console.CommandInterpreter;
@@ -82,6 +83,11 @@ public class MondShellCommandProvider implements CommandProvider
 	public void _kill(CommandInterpreter ci) throws Exception
 	{
 		new WinKillCommandHandler(ci).execute();
+	}
+
+	public void _date(CommandInterpreter ci) throws Exception
+	{
+		new DateCommandHandler(ci).execute();
 	}
 
 }

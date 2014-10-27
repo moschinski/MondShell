@@ -13,11 +13,13 @@ public class HelpTextBuilder
 
 	private static class CmdValueDesc
 	{
-		String name;
-		String desc;
+		final String name;
+		final String desc;
+		final boolean optional;
 
-		CmdValueDesc(String name, String desc)
+		CmdValueDesc(String name, String desc, boolean optional)
 		{
+			this.optional = optional;
 			this.name = requireNonNull(name);
 			this.desc = requireNonNull(desc);
 		}
@@ -40,13 +42,19 @@ public class HelpTextBuilder
 
 	public HelpTextBuilder addArgument(String command, String description)
 	{
-		arguments.add(new CmdValueDesc(command, description));
+		arguments.add(new CmdValueDesc(command, description, false));
+		return this;
+	}
+
+	public HelpTextBuilder addOptionalArgument(String command, String description)
+	{
+		arguments.add(new CmdValueDesc(command, description, true));
 		return this;
 	}
 
 	public HelpTextBuilder addOption(Option option, String optionDesc)
 	{
-		options.add(new CmdValueDesc(option.toString(), optionDesc));
+		options.add(new CmdValueDesc(option.toString(), optionDesc, true));
 		return this;
 	}
 
@@ -55,22 +63,12 @@ public class HelpTextBuilder
 	{
 		StringBuilder helpText = new StringBuilder();
 		helpText.append(command).append(": \"").append(description).append("\"").append(newline).append("* USAGE: ")
-				.append(command).append(getOptionsList())
-				.append(getArguments().append(getDetailedOptionDesc()).append(getDetailedArgumentDesc()));
+				.append(command).append(getListing(options)).append(getListing(arguments))
+				.append(getDetailedOptionDesc()).append(getDetailedArgumentDesc());
 		return helpText.toString();
 	}
 
-	private StringBuilder getOptionsList()
-	{
-		return getListing(options, true);
-	}
-
-	private StringBuilder getArguments()
-	{
-		return getListing(arguments, false);
-	}
-
-	private StringBuilder getListing(Collection<CmdValueDesc> options, boolean addBrackets)
+	private StringBuilder getListing(Collection<CmdValueDesc> options)
 	{
 		StringBuilder optionsBuilder = new StringBuilder();
 		if (options.isEmpty())
@@ -81,7 +79,8 @@ public class HelpTextBuilder
 		optionsBuilder.append(" ");
 		while (iterator.hasNext())
 		{
-			optionsBuilder.append(addBrackets ? "[" : "").append(iterator.next().name).append(addBrackets ? "]" : "");
+			CmdValueDesc next = iterator.next();
+			optionsBuilder.append(next.optional ? "[" : "").append(next.name).append(next.optional ? "]" : "");
 			if (iterator.hasNext())
 				optionsBuilder.append(" ");
 		}
@@ -95,7 +94,7 @@ public class HelpTextBuilder
 
 	private StringBuilder getDetailedArgumentDesc()
 	{
-		return getDetailedList("ARGUMENTS (mandatory)", arguments);
+		return getDetailedList("ARGUMENTS", arguments);
 	}
 
 	private StringBuilder getDetailedList(String headline, Collection<CmdValueDesc> describables)

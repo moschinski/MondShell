@@ -46,4 +46,14 @@ public interface CommandInput {
 	 */
 	Collection<String> getArguments();
 
+	/**
+	 * @param option
+	 *            the option for which the value is wanted
+	 * @param defaultValue
+	 *            the value that is returned if no value for the option is given
+	 * @return the value for the {@code option} or the {@code defaultValue} if
+	 *         no option value is given
+	 */
+	Object getValueForOption(Option option, Object defaultValue);
+
 }

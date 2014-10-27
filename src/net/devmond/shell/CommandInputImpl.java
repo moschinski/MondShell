@@ -43,6 +43,13 @@ public class CommandInputImpl implements CommandInput
 	}
 
 	@Override
+	public Object getValueForOption(Option option, Object defaultValue)
+	{
+		return options.getValueForOption(option, defaultValue);
+	}
+
+
+	@Override
 	public Collection<String> getArguments()
 	{
 		return Collections.unmodifiableCollection(arguments);
