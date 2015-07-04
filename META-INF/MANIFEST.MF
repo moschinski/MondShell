@@ -15,6 +15,9 @@ Require-Bundle: org.eclipse.ui,
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Import-Package: javax.servlet;version="2.6.0",
  javax.servlet.http;version="2.6.0",
- org.apache.commons.codec
+ org.apache.commons.codec,
+ org.eclipse.pde.core.target,
+ org.eclipse.pde.internal.core,
+ org.eclipse.pde.internal.core.target
 Export-Package: net.devmond.shell
 Bundle-ActivationPolicy: lazy

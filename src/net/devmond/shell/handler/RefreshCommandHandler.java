@@ -1,10 +1,12 @@
 package net.devmond.shell.handler;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static net.devmond.shell.handler.TextResult.textResult;
 
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,9 +19,16 @@ import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 import org.eclipse.osgi.framework.console.CommandInterpreter;
+import org.eclipse.pde.core.target.ITargetDefinition;
+import org.eclipse.pde.core.target.ITargetPlatformService;
+import org.eclipse.pde.core.target.LoadTargetDefinitionJob;
+import org.eclipse.pde.internal.core.PDECore;
 
 /**
  * TODO add support for saving before performing a refresh
@@ -46,6 +55,7 @@ public class RefreshCommandHandler extends AbstractCommandHandler
 
 	private Result refreshWorkspace() throws InterruptedException
 	{
+		refreshTargetPlatform();
 		// refresh whole workspace
 		refreshResource(ResourcesPlugin.getWorkspace().getRoot(), "Refreshing workspace");
 		return textResult("Triggered refresh of workspace");
@@ -116,5 +126,49 @@ public class RefreshCommandHandler extends AbstractCommandHandler
 		job.setUser(true);
 		job.setPriority(Job.LONG);
 		job.schedule();
+	}
+
+	/**
+	 * todo: implement a non-blocking version
+	 */
+	private void refreshTargetPlatform()
+	{
+		@SuppressWarnings("restriction")
+		ITargetPlatformService platfomService = (ITargetPlatformService) PDECore.getDefault().acquireService(
+				ITargetPlatformService.class.getName());
+		ITargetDefinition activeTarget = null;
+		try
+		{
+			activeTarget = platfomService.getWorkspaceTargetDefinition();
+
+			// copy target before compare (?)
+			activeTarget.resolve(new NullProgressMonitor());
+			if (!activeTarget.isResolved() || activeTarget.getStatus().getSeverity() == IStatus.ERROR)
+			{
+				return;
+			}
+			if (!platfomService.compareWithTargetPlatform(activeTarget).isOK())
+			{
+				final CountDownLatch loaded = new CountDownLatch(1);
+				LoadTargetDefinitionJob.load(activeTarget, new JobChangeAdapter()
+				{
+
+					@Override
+					public void done(IJobChangeEvent event)
+					{
+						loaded.countDown();
+					}
+
+				});
+				loaded.await(1, MINUTES);
+			}
+		} catch (InterruptedException e)
+		{
+			Thread.currentThread().interrupt();
+		} catch (RuntimeException | CoreException e)
+		{
+			log.warning("Failed to reload target platform: " + activeTarget == null ? "<unknown>" : activeTarget
+					.getName());
+		}
 	}
 }
