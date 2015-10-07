@@ -1,5 +1,6 @@
 package net.devmond.shell.util;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
@@ -46,59 +47,46 @@ public class NetstatUtil {
 	 * @author stefan.moschinski
 	 */
 	public NetstatUtil(Runtime runtime) {
-		if (runtime == null)
-			throw new NullPointerException("The runtime must not be null");
-		this.runtime = runtime;
+		this.runtime = requireNonNull(runtime);
 
 	}
 
 	/**
 	 * 
-	 * @param port port to check whether it is used by a process
-	 * @return the process name that is using the port or <code>null</code> if no process was found, the used OS is not Windows, or Netstat
-	 * checking was disabled by 
+	 * @param port
+	 *            port to check whether it is used by a process
+	 * @return the process name that is using the port or
+	 *         {@link Portuse#NO_PORT_USE_FOUND} if no process was found, the
+	 *         used OS is not Windows, or Netstat checking was disabled by
 	 * @author stefan.moschinski
 	 */
 	public Portuse findProcessForPort(int port)
 	{
 		String netstatResp = getNetstatResponse(NETSTAT_RESPONSE_TIMEOUT, SECONDS);
-		if (netstatResp == null)
-			return null;
+		assert netstatResp != null : "The received netstat response was null";
 
-		Pattern portRegex = Pattern.compile("(TCP|UDP|TCPv6|UDPv6)\\s+"
-				+ IP_REGEX + ":" + port + "\\s+.*\\s+(\\d+)",
-				Pattern.CASE_INSENSITIVE);
-		Matcher matcher = portRegex.matcher(netstatResp);
-
-		if (matcher.find()) {
-			int pid = Integer.valueOf(matcher.group(2));
-			Matcher subMatcher = PROCESS_PATTERN.matcher(netstatResp);
-			if (subMatcher.find(matcher.end())) {
-				String processName = subMatcher.group(0);
-
-				processName = StringUtils.removeStart(processName, "[");
-				processName = StringUtils.removeEnd(processName, "]");
-
-				return new Portuse(processName, pid);
-			}
-		}
-
-		return null;
+		return getPortUse(port, netstatResp);
 	}
 
-	private String getNetstatResponse(int timeout, TimeUnit unit) {
+
+	private String getNetstatResponse(int timeout, TimeUnit unit)
+	{
 		String netstatResp = null;
-		try {
+		try
+		{
 			netstatResp = getNetstatRespInternal(timeout, unit);
-		} catch (IOException e) {
-			log.log(Level.WARNING, String.format("An exeption happened executing '%s'", Arrays.toString(NETSTAT_CMD)), e);
-		} catch (InterruptedException e) {
-			log.log(Level.WARNING, String.format("The execution of '%s' was interrupted", Arrays.toString(NETSTAT_CMD)), e);
-		} catch (ExecutionException e) {
+
+		} catch (InterruptedException e)
+		{
+			Thread.currentThread().interrupt();
+		} catch (TimeoutException e)
+		{
+			log.log(Level.WARNING,
+					String.format("The execution of '%s' did not return in time", Arrays.toString(NETSTAT_CMD)), e);
+		} catch (Exception e)
+		{
 			log.log(Level.WARNING, String.format("An exeption happened executing '%s'", Arrays.toString(NETSTAT_CMD)),
-					e.getCause());
-		} catch (TimeoutException e) {
-			log.log(Level.WARNING, String.format("The execution of '%s' did not return in time", Arrays.toString(NETSTAT_CMD)), e);
+					e);
 		}
 		return netstatResp;
 	}
@@ -111,9 +99,40 @@ public class NetstatUtil {
 		return netstatExec.getInputAsString(timeout, unit);
 	}
 
+	private Portuse getPortUse(int port, String netstatResp)
+	{
+		Matcher matcher = createProcessPortMatcher(port, netstatResp);
+		if (matcher.find())
+		{
+			int pid = Integer.valueOf(matcher.group(2));
+			Matcher subMatcher = PROCESS_PATTERN.matcher(netstatResp);
+			if (subMatcher.find(matcher.end()))
+			{
+				return new Portuse(getProcessName(subMatcher), pid);
+			}
+		}
+		return Portuse.NO_PORT_USE_FOUND;
+	}
+
+	private Matcher createProcessPortMatcher(int port, String netstatResp)
+	{
+		Pattern portRegex = Pattern.compile("(TCP|UDP|TCPv6|UDPv6)\\s+" + IP_REGEX + ":" + port + "\\s+.*\\s+(\\d+)",
+				Pattern.CASE_INSENSITIVE);
+		return portRegex.matcher(netstatResp);
+	}
+
+	private String getProcessName(Matcher subMatcher)
+	{
+		String processName = subMatcher.group(0);
+		processName = StringUtils.removeStart(processName, "[");
+		processName = StringUtils.removeEnd(processName, "]");
+		return processName;
+	}
+
 	public static class Portuse
 	{
-		public static final Portuse NO_PORT_USE_FOUND = new Portuse(null, -1);
+		static final String NO_PROCESS_FOUND = "<NO PROCESS FOUND>";
+		public static final Portuse NO_PORT_USE_FOUND = new Portuse(NO_PROCESS_FOUND, -1);
 
 		private final String processName;
 		private final int pid;
